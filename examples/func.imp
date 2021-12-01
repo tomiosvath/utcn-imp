@@ -6,13 +6,13 @@ func exp(a: int, n: int): int {
   if (n == 0) {
     return 1
   } else {
-    let b : int = exp(a, n / 2);
     if (n % 2 == 0) {
-      return b * b
+      return exp(a, n / 2) * exp(a, n / 2)
     } else {
-      return b * b * a
+      return exp(a, n / 2) * exp(a, n / 2) * a
     }
   }
 }
+
 
 print_int(exp(read_int(), read_int()))

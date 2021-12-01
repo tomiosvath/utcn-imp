@@ -21,8 +21,11 @@ enum class Opcode : uint8_t {
   POP,
   CALL,
 
+  EQ,
   ADD,
   SUB,
+  MUL,
+  DIV,
   RET,
 
   JUMP_FALSE,

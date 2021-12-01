@@ -88,6 +88,7 @@ std::shared_ptr<Stmt> Parser::ParseStmt()
   switch (tk.GetKind()) {
     case Token::Kind::RETURN: return ParseReturnStmt();
     case Token::Kind::WHILE: return ParseWhileStmt();
+    case Token::Kind::IF: return ParseIfStmt();
     case Token::Kind::LBRACE: return ParseBlockStmt();
     default: return std::make_shared<ExprStmt>(ParseExpr());
   }
@@ -130,6 +131,26 @@ std::shared_ptr<WhileStmt> Parser::ParseWhileStmt()
   lexer_.Next();
   auto stmt = ParseStmt();
   return std::make_shared<WhileStmt>(cond, stmt);
+}
+
+// -----------------------------------------------------------------------------
+std::shared_ptr<IfStmt> Parser::ParseIfStmt()
+{
+  Check(Token::Kind::IF);
+  Expect(Token::Kind::LPAREN);
+  lexer_.Next();
+  auto cond = ParseExpr();
+  Check(Token::Kind::RPAREN);
+  lexer_.Next();
+  auto stmt = ParseStmt();
+
+  if(Current().Is(Token::Kind::ELSE)){
+    lexer_.Next();
+    auto else_stmt = ParseStmt();
+    return std::make_shared<IfStmt>(cond, stmt, else_stmt);
+  }
+
+  return std::make_shared<IfStmt>(cond, stmt, nullptr);
 }
 
 // -----------------------------------------------------------------------------
@@ -181,18 +202,49 @@ std::shared_ptr<Expr> Parser::ParseCallExpr()
 // -----------------------------------------------------------------------------
 std::shared_ptr<Expr> Parser::ParseAddSubExpr()
 {
-  std::shared_ptr<Expr> term = ParseCallExpr();
+  std::shared_ptr<Expr> term = ParseMulDivExpr();
   while (Current().Is(Token::Kind::PLUS) || Current().Is(Token::Kind::MINUS)) {
   if(Current().Is(Token::Kind::PLUS)){
     lexer_.Next();
-    auto rhs = ParseCallExpr();
+    auto rhs = ParseMulDivExpr();
     term = std::make_shared<BinaryExpr>(BinaryExpr::Kind::ADD, term, rhs);
   } else {
     lexer_.Next();
-    auto rhs = ParseCallExpr();
+    auto rhs = ParseMulDivExpr();
     term = std::make_shared<BinaryExpr>(BinaryExpr::Kind::SUB, term, rhs);
   }
     
+  }
+  return term;
+}
+
+// -----------------------------------------------------------------------------
+std::shared_ptr<Expr> Parser::ParseMulDivExpr()
+{
+  std::shared_ptr<Expr> term = ParseCallExpr();
+  while (Current().Is(Token::Kind::STAR) || Current().Is(Token::Kind::SLASH)) {
+  if(Current().Is(Token::Kind::STAR)){
+    lexer_.Next();
+    auto rhs = ParseCallExpr();
+    term = std::make_shared<BinaryExpr>(BinaryExpr::Kind::MUL, term, rhs);
+  } else {
+    lexer_.Next();
+    auto rhs = ParseCallExpr();
+    term = std::make_shared<BinaryExpr>(BinaryExpr::Kind::DIV, term, rhs);
+  }
+    
+  }
+  return term;
+}
+
+// -----------------------------------------------------------------------------
+std::shared_ptr<Expr> Parser::ParseEqExpr()
+{
+  std::shared_ptr<Expr> term = ParseAddSubExpr();
+  while (Current().Is(Token::Kind::EQ)) {
+    lexer_.Next();
+    auto rhs = ParseAddSubExpr();
+    term = std::make_shared<BinaryExpr>(BinaryExpr::Kind::EQ, term, rhs);
   }
   return term;
 }
